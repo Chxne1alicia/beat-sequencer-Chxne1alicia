@@ -55,3 +55,5 @@
 2026-06-08 23:02:28 [JettyServerThreadPool-58] INFO  com.beatsequencer.Server - GET /patterns - returned 1 patterns
 2026-06-08 23:02:47 [JettyServerThreadPool-54] INFO  com.beatsequencer.Server - POST /patterns - created pattern 'my second beat' with id 2
 2026-06-08 23:18:26 [JettyServerThreadPool-55] INFO  com.beatsequencer.Server - POST /patterns - created pattern 'New Pattern' with id 3
+2026-06-08 23:32:53 [JettyServerThreadPool-51] INFO  com.beatsequencer.Server - POST /patterns - created pattern 'Groove 01' with id 4
+2026-06-08 23:34:01 [JettyServerThreadPool-52] INFO  com.beatsequencer.Server - PUT /patterns/1/beats - updated 2 beats
