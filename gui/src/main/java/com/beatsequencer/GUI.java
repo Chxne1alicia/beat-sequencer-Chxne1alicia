@@ -30,6 +30,7 @@ public class GUI extends JFrame {
     private final boolean[][] active = new boolean[4][STEPS];
     private final JLabel[] indicators = new JLabel[STEPS];
     private final int[] volumeLevels = {100, 100, 100, 100};
+    private final int[] panLevels = {64, 64, 64, 64};
 
     private Sequencer midiSequencer;
     private javax.swing.Timer metronomeTimer;
@@ -177,10 +178,26 @@ public class GUI extends JFrame {
             track.add(spacer(8, 36));
             final int r = row;
             JSlider vol = new JSlider(0, 127, 100);
-            vol.setPreferredSize(new Dimension(64, 36));
+            vol.setPreferredSize(new Dimension(56, 36));
             vol.setBackground(APP_BG);
+            vol.setToolTipText("Volume");
             vol.addChangeListener(e -> volumeLevels[r] = vol.getValue());
+            JLabel volLbl = new JLabel("V");
+            volLbl.setForeground(new Color(80, 80, 100));
+            volLbl.setFont(new Font("SansSerif", Font.BOLD, 9));
+            JSlider pan = new JSlider(0, 127, 64);
+            pan.setPreferredSize(new Dimension(56, 36));
+            pan.setBackground(APP_BG);
+            pan.setToolTipText("Pan");
+            pan.addChangeListener(e -> panLevels[r] = pan.getValue());
+            JLabel panLbl = new JLabel("P");
+            panLbl.setForeground(new Color(80, 80, 100));
+            panLbl.setFont(new Font("SansSerif", Font.BOLD, 9));
+            track.add(volLbl);
             track.add(vol);
+            track.add(spacer(4, 36));
+            track.add(panLbl);
+            track.add(pan);
 
             grid.add(track);
             if (row < 3) grid.add(spacer(900, 5));
@@ -374,6 +391,8 @@ public class GUI extends JFrame {
                 if (active[row][step]) {
                     ShortMessage reverb = new ShortMessage(ShortMessage.CONTROL_CHANGE, 9, 91, reverbLevel);
                     track.add(new MidiEvent(reverb, 0L));
+		    ShortMessage panMsg = new ShortMessage(ShortMessage.CONTROL_CHANGE, 9, 10, panLevels[row]);
+                    track.add(new MidiEvent(panMsg, 0L));
                     int vel = (int)(velocityLevel * (volumeLevels[row] / 127.0));
                     ShortMessage on  = new ShortMessage(ShortMessage.NOTE_ON,  9, MIDI_NOTES[row], Math.max(1, vel));
                     ShortMessage off = new ShortMessage(ShortMessage.NOTE_OFF, 9, MIDI_NOTES[row], 0);
