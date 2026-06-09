@@ -14,6 +14,17 @@ public class GUI extends JFrame {
 
     private final String[] INSTRUMENTS = {"KICK", "SNARE", "HI-HAT", "TOM"};
     private final int[] MIDI_NOTES = {36, 38, 42, 45};
+    private final String[] DRUM_NAMES = {
+    "Kick", "Snare", "Hi-Hat Closed", "Hi-Hat Open", "Tom Low",
+    "Tom Mid", "Tom High", "Clap", "Rimshot", "Cowbell",
+    "Crash", "Ride", "Shaker", "Tambourine", "Claves"
+    };
+    private final int[] DRUM_MIDI = {
+    	36, 38, 42, 46, 41,
+    	47, 50, 39, 37, 56,
+    	49, 51, 70, 54, 75
+    };
+    private final JComboBox<String>[] instrumentSelectors = new JComboBox[4];
     private final int[] MIDI_CHANNELS = {0, 1, 2, 3};
     private final Color[] ROW_COLORS = {
         new Color(224, 85, 85),
@@ -147,11 +158,15 @@ public class GUI extends JFrame {
             JPanel track = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
             track.setBackground(APP_BG);
 
-            JLabel lbl = new JLabel(INSTRUMENTS[row], SwingConstants.RIGHT);
-            lbl.setForeground(ROW_COLORS[row]);
-            lbl.setFont(new Font("SansSerif", Font.BOLD, 11));
-            lbl.setPreferredSize(new Dimension(56, 36));
-            track.add(lbl);
+            JComboBox<String> selector = new JComboBox<>(DRUM_NAMES);
+            selector.setSelectedIndex(row);
+            selector.setPreferredSize(new Dimension(110, 30));
+            selector.setBackground(new Color(26, 26, 36));
+            selector.setForeground(ROW_COLORS[row]);
+            selector.setFont(new Font("SansSerif", Font.BOLD, 10));
+            selector.setFocusable(false);
+            instrumentSelectors[row] = selector;
+            track.add(selector);
             track.add(spacer(4, 36));
 
             for (int col = 0; col < STEPS; col++) {
@@ -395,8 +410,9 @@ public class GUI extends JFrame {
                     ShortMessage panMsg = new ShortMessage(ShortMessage.CONTROL_CHANGE, 9, 10, panLevels[row]);
                     track.add(new MidiEvent(panMsg, step * 4L));
                     int vel = (int)(velocityLevel * (volumeLevels[row] / 127.0));
-                    ShortMessage on  = new ShortMessage(ShortMessage.NOTE_ON,  9, MIDI_NOTES[row], Math.max(1, vel));
-                    ShortMessage off = new ShortMessage(ShortMessage.NOTE_OFF, 9, MIDI_NOTES[row], 0);
+                    int note = DRUM_MIDI[instrumentSelectors[row].getSelectedIndex()];
+                    ShortMessage on  = new ShortMessage(ShortMessage.NOTE_ON,  9, note, Math.max(1, vel));
+                    ShortMessage off = new ShortMessage(ShortMessage.NOTE_OFF, 9, note, 0);
                     track.add(new MidiEvent(on,  step * 4L));
                     track.add(new MidiEvent(off, step * 4L + 2));
                 }
