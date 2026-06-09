@@ -12,25 +12,28 @@ public class GUI extends JFrame {
     private static final String BASE_URL = "http://localhost:7001";
     private static final HttpClient client = HttpClient.newHttpClient();
 
-    private final String[] INSTRUMENTS = {"KICK", "SNARE", "HI-HAT", "TOM"};
-    private final int[] MIDI_NOTES = {36, 38, 42, 45};
+    private final Color[] ROW_COLORS = {
+        new Color(224, 85, 85), new Color(85, 136, 224),
+        new Color(224, 192, 85), new Color(85, 192, 112),
+        new Color(180, 85, 224), new Color(85, 224, 200),
+        new Color(224, 140, 85), new Color(150, 224, 85)
+    };
     private final String[] DRUM_NAMES = {
-    "Kick", "Snare", "Hi-Hat Closed", "Hi-Hat Open", "Tom Low",
-    "Tom Mid", "Tom High", "Clap", "Rimshot", "Cowbell",
-    "Crash", "Ride", "Shaker", "Tambourine", "Claves"
+        "Kick", "Snare", "Hi-Hat Closed", "Hi-Hat Open", "Tom Low",
+        "Tom Mid", "Tom High", "Clap", "Rimshot", "Cowbell",
+        "Crash", "Ride", "Shaker", "Tambourine", "Claves"
     };
     private final int[] DRUM_MIDI = {
-    	36, 38, 42, 46, 41,
-    	47, 50, 39, 37, 56,
-    	49, 51, 70, 54, 75
+        36, 38, 42, 46, 41,
+        47, 50, 39, 37, 56,
+        49, 51, 70, 54, 75
     };
-    private final JComboBox<String>[] instrumentSelectors = new JComboBox[4];
-    private final int[] MIDI_CHANNELS = {0, 1, 2, 3};
-    private final Color[] ROW_COLORS = {
-        new Color(224, 85, 85),
-        new Color(85, 136, 224),
-        new Color(224, 192, 85),
-        new Color(85, 192, 112)
+    private java.util.List<boolean[]> activeRows = new java.util.ArrayList<>();
+    private java.util.List<JPanel[]> stepPanelRows = new java.util.ArrayList<>();
+    private java.util.List<JComboBox<String>> instrumentSelectors = new java.util.ArrayList<>();
+    private java.util.List<Integer> volumeList = new java.util.ArrayList<>();
+    private java.util.List<Integer> panList = new java.util.ArrayList<>();
+    private JPanel gridPanel;
     };
     private final Color APP_BG     = new Color(15, 15, 20);
     private final Color BAR_BG     = new Color(26, 26, 36);
@@ -38,11 +41,7 @@ public class GUI extends JFrame {
     private final Color BORDER_COL = new Color(42, 42, 58);
 
     private final int STEPS = 16;
-    private final JPanel[][] stepPanels = new JPanel[4][STEPS];
-    private final boolean[][] active = new boolean[4][STEPS];
     private final JLabel[] indicators = new JLabel[STEPS];
-    private final int[] volumeLevels = {100, 100, 100, 100};
-    private final int[] panLevels = {64, 64, 64, 64};
 
     private Sequencer midiSequencer;
     private javax.swing.Timer metronomeTimer;
@@ -130,14 +129,14 @@ public class GUI extends JFrame {
         return bar;
     }
 
-    JPanel buildGrid() {
+   JPanel buildGrid() {
         JPanel wrapper = new JPanel(new BorderLayout(0, 4));
         wrapper.setBackground(APP_BG);
         wrapper.setBorder(BorderFactory.createEmptyBorder(10, 14, 6, 14));
 
         JPanel indRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         indRow.setBackground(APP_BG);
-        indRow.add(spacer(60, 12));
+        indRow.add(spacer(118, 12));
         for (int i = 0; i < STEPS; i++) {
             if (i > 0 && i % 4 == 0) indRow.add(spacer(4, 12));
             JLabel ind = new JLabel("v", SwingConstants.CENTER);
@@ -150,76 +149,100 @@ public class GUI extends JFrame {
         }
         wrapper.add(indRow, BorderLayout.NORTH);
 
-        JPanel grid = new JPanel();
-        grid.setBackground(APP_BG);
-        grid.setLayout(new BoxLayout(grid, BoxLayout.Y_AXIS));
+        gridPanel = new JPanel();
+        gridPanel.setBackground(APP_BG);
+        gridPanel.setLayout(new BoxLayout(gridPanel, BoxLayout.Y_AXIS));
 
-        for (int row = 0; row < 4; row++) {
-            JPanel track = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-            track.setBackground(APP_BG);
+        for (int i = 0; i < 4; i++) addRow();
 
-            JComboBox<String> selector = new JComboBox<>(DRUM_NAMES);
-            selector.setSelectedIndex(row);
-            selector.setPreferredSize(new Dimension(110, 30));
-            selector.setBackground(new Color(26, 26, 36));
-            selector.setForeground(ROW_COLORS[row]);
-            selector.setFont(new Font("SansSerif", Font.BOLD, 10));
-            selector.setFocusable(false);
-            instrumentSelectors[row] = selector;
-            track.add(selector);
-            track.add(spacer(4, 36));
-
-            for (int col = 0; col < STEPS; col++) {
-                if (col > 0 && col % 4 == 0) track.add(spacer(4, 36));
-                final int r = row, c = col;
-                JPanel step = new JPanel();
-                step.setPreferredSize(new Dimension(36, 36));
-                step.setOpaque(true);
-                step.setBackground(STEP_OFF);
-                step.setBorder(BorderFactory.createLineBorder(BORDER_COL, 1));
-                step.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                step.addMouseListener(new MouseAdapter() {
-                    public void mousePressed(MouseEvent e) {
-                        active[r][c] = !active[r][c];
-                        step.setBackground(active[r][c] ? ROW_COLORS[r] : STEP_OFF);
-                        step.setBorder(BorderFactory.createLineBorder(
-                            active[r][c] ? ROW_COLORS[r].brighter() : BORDER_COL, 1));
-                    }
-                });
-                stepPanels[row][col] = step;
-                track.add(step);
-                if (col < STEPS - 1) track.add(spacer(3, 36));
+        JPanel addRowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 4));
+        addRowPanel.setBackground(APP_BG);
+        JButton addBtn = actionBtn("+ Add Instrument", new Color(42, 42, 58));
+        addBtn.addActionListener(e -> {
+            if (activeRows.size() < 8) {
+                addRow();
+                gridPanel.revalidate();
+                gridPanel.repaint();
             }
+        });
+        addRowPanel.add(addBtn);
 
-            track.add(spacer(8, 36));
-            final int r = row;
-            JSlider vol = new JSlider(0, 127, 100);
-            vol.setPreferredSize(new Dimension(56, 36));
-            vol.setBackground(APP_BG);
-            vol.setToolTipText("Volume");
-            vol.addChangeListener(e -> volumeLevels[r] = vol.getValue());
-            JLabel volLbl = new JLabel("V");
-            volLbl.setForeground(new Color(80, 80, 100));
-            volLbl.setFont(new Font("SansSerif", Font.BOLD, 9));
-            JSlider pan = new JSlider(0, 127, 64);
-            pan.setPreferredSize(new Dimension(56, 36));
-            pan.setBackground(APP_BG);
-            pan.setToolTipText("Pan");
-            pan.addChangeListener(e -> panLevels[r] = pan.getValue());
-            JLabel panLbl = new JLabel("P");
-            panLbl.setForeground(new Color(80, 80, 100));
-            panLbl.setFont(new Font("SansSerif", Font.BOLD, 9));
-            track.add(volLbl);
-            track.add(vol);
-            track.add(spacer(4, 36));
-            track.add(panLbl);
-            track.add(pan);
-
-            grid.add(track);
-            if (row < 3) grid.add(spacer(900, 5));
-        }
-        wrapper.add(grid, BorderLayout.CENTER);
+        wrapper.add(gridPanel, BorderLayout.CENTER);
+        wrapper.add(addRowPanel, BorderLayout.SOUTH);
         return wrapper;
+    }
+
+    void addRow() {
+        int row = activeRows.size();
+        boolean[] rowActive = new boolean[STEPS];
+        JPanel[] rowPanels = new JPanel[STEPS];
+        activeRows.add(rowActive);
+        stepPanelRows.add(rowPanels);
+        volumeList.add(100);
+        panList.add(64);
+
+        Color color = ROW_COLORS[row % ROW_COLORS.length];
+
+        JPanel track = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        track.setBackground(APP_BG);
+        track.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        JComboBox<String> selector = new JComboBox<>(DRUM_NAMES);
+        selector.setSelectedIndex(Math.min(row, DRUM_NAMES.length - 1));
+        selector.setPreferredSize(new Dimension(110, 30));
+        selector.setBackground(new Color(26, 26, 36));
+        selector.setForeground(color);
+        selector.setFont(new Font("SansSerif", Font.BOLD, 10));
+        selector.setFocusable(false);
+        instrumentSelectors.add(selector);
+        track.add(selector);
+        track.add(spacer(4, 36));
+
+        for (int col = 0; col < STEPS; col++) {
+            if (col > 0 && col % 4 == 0) track.add(spacer(4, 36));
+            final int r = row, c = col;
+            JPanel step = new JPanel();
+            step.setPreferredSize(new Dimension(36, 36));
+            step.setOpaque(true);
+            step.setBackground(STEP_OFF);
+            step.setBorder(BorderFactory.createLineBorder(BORDER_COL, 1));
+            step.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            step.addMouseListener(new MouseAdapter() {
+                public void mousePressed(MouseEvent e) {
+                    rowActive[c] = !rowActive[c];
+                    step.setBackground(rowActive[c] ? color : STEP_OFF);
+                    step.setBorder(BorderFactory.createLineBorder(
+                        rowActive[c] ? color.brighter() : BORDER_COL, 1));
+                }
+            });
+            rowPanels[col] = step;
+            track.add(step);
+            if (col < STEPS - 1) track.add(spacer(3, 36));
+        }
+
+        track.add(spacer(8, 36));
+        JSlider vol = new JSlider(0, 127, 100);
+        vol.setPreferredSize(new Dimension(56, 36));
+        vol.setBackground(APP_BG);
+        vol.addChangeListener(e -> volumeList.set(row, vol.getValue()));
+        JLabel volLbl = new JLabel("V");
+        volLbl.setForeground(new Color(80, 80, 100));
+        volLbl.setFont(new Font("SansSerif", Font.BOLD, 9));
+        JSlider pan = new JSlider(0, 127, 64);
+        pan.setPreferredSize(new Dimension(56, 36));
+        pan.setBackground(APP_BG);
+        pan.addChangeListener(e -> panList.set(row, pan.getValue()));
+        JLabel panLbl = new JLabel("P");
+        panLbl.setForeground(new Color(80, 80, 100));
+        panLbl.setFont(new Font("SansSerif", Font.BOLD, 9));
+        track.add(volLbl);
+        track.add(vol);
+        track.add(spacer(4, 36));
+        track.add(panLbl);
+        track.add(pan);
+
+        gridPanel.add(track);
+        gridPanel.add(spacer(900, 4));
     }
 
     JPanel buildBottomBar() {
@@ -371,11 +394,11 @@ public class GUI extends JFrame {
     }
 
     void clearGrid() {
-        for (int r = 0; r < 4; r++)
+        for (int r = 0; r < activeRows.size(); r++)
             for (int c = 0; c < STEPS; c++) {
-                active[r][c] = false;
-                stepPanels[r][c].setBackground(STEP_OFF);
-                stepPanels[r][c].setBorder(BorderFactory.createLineBorder(BORDER_COL, 1));
+                activeRows.get(r)[c] = false;
+                stepPanelRows.get(r)[c].setBackground(STEP_OFF);
+                stepPanelRows.get(r)[c].setBorder(BorderFactory.createLineBorder(BORDER_COL, 1));
             }
         setStatus("Cleared", new Color(80, 80, 100));
     }
@@ -403,14 +426,14 @@ public class GUI extends JFrame {
         Sequence sequence = new Sequence(Sequence.PPQ, 4);
         Track track = sequence.createTrack();
         for (int step = 0; step < STEPS; step++) {
-            for (int row = 0; row < 4; row++) {
-                if (active[row][step]) {
+            for (int row = 0; row < activeRows.size(); row++) {
+                if (activeRows.get(row)[step]) {
                     ShortMessage reverb = new ShortMessage(ShortMessage.CONTROL_CHANGE, 9, 91, reverbLevel);
                     track.add(new MidiEvent(reverb, step * 4L));
-                    ShortMessage panMsg = new ShortMessage(ShortMessage.CONTROL_CHANGE, 9, 10, panLevels[row]);
+                    ShortMessage panMsg = new ShortMessage(ShortMessage.CONTROL_CHANGE, 9, 10, panList.get(row));
                     track.add(new MidiEvent(panMsg, step * 4L));
-                    int vel = (int)(velocityLevel * (volumeLevels[row] / 127.0));
-                    int note = DRUM_MIDI[instrumentSelectors[row].getSelectedIndex()];
+                    int vel = (int)(velocityLevel * (volumeList.get(row) / 127.0));
+                    int note = DRUM_MIDI[instrumentSelectors.get(row).getSelectedIndex()];
                     ShortMessage on  = new ShortMessage(ShortMessage.NOTE_ON,  9, note, Math.max(1, vel));
                     ShortMessage off = new ShortMessage(ShortMessage.NOTE_OFF, 9, note, 0);
                     track.add(new MidiEvent(on,  step * 4L));

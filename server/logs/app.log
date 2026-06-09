@@ -65,3 +65,5 @@
 2026-06-09 00:03:52 [JettyServerThreadPool-65] INFO  com.beatsequencer.Server - PUT /patterns/5/beats - updated 64 beats
 2026-06-09 00:08:21 [JettyServerThreadPool-52] INFO  com.beatsequencer.Server - GET /patterns - returned 5 patterns
 2026-06-09 00:08:24 [JettyServerThreadPool-64] INFO  com.beatsequencer.Server - GET /patterns/1/beats - returned 2 beats
+2026-06-09 00:16:27 [JettyServerThreadPool-69] INFO  com.beatsequencer.Server - GET /patterns - returned 5 patterns
+2026-06-09 00:16:29 [JettyServerThreadPool-55] INFO  com.beatsequencer.Server - GET /patterns - returned 5 patterns
