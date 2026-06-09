@@ -13,7 +13,7 @@ public class Server {
     public static void main(String[] args) {
         Database.initialize();
 
-        Javalin app = Javalin.create().start(7000);
+        Javalin app = Javalin.create().start(7001);
         log.info("Beat Sequencer server started on port 7000");
 
         // GET all patterns
