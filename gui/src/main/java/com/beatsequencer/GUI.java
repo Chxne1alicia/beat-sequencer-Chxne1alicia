@@ -79,9 +79,11 @@ public class GUI extends JFrame {
             for (int col = 0; col < STEPS; col++) {
                 JToggleButton btn = new JToggleButton();
                 btn.setPreferredSize(new Dimension(40, 40));
+                btn.setOpaque(true);
+                btn.setBorderPainted(false);
                 btn.setBackground(Color.DARK_GRAY);
                 btn.addItemListener(e -> {
-                    btn.setBackground(btn.isSelected() ? Color.GREEN : Color.DARK_GRAY);
+                    btn.setBackground(btn.isSelected() ? new Color(255, 165, 0) : Color.DARK_GRAY);
                 });
                 grid[row][col] = btn;
                 panel.add(btn);
