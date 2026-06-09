@@ -29,6 +29,7 @@ public class GUI extends JFrame {
     private final JPanel[][] stepPanels = new JPanel[4][STEPS];
     private final boolean[][] active = new boolean[4][STEPS];
     private final JLabel[] indicators = new JLabel[STEPS];
+    private final int[] volumeLevels = {100, 100, 100, 100};
 
     private Sequencer midiSequencer;
     private javax.swing.Timer metronomeTimer;
@@ -36,7 +37,6 @@ public class GUI extends JFrame {
     private int currentStep = -1;
     private int reverbLevel = 40;
     private int velocityLevel = 100;
-    private final int[] volumeLevels = {100, 100, 100, 100};
 
     private JLabel statusLabel;
     private JLabel bpmDisplay;
@@ -50,25 +50,20 @@ public class GUI extends JFrame {
         add(buildGrid(), BorderLayout.CENTER);
         add(buildBottomBar(), BorderLayout.SOUTH);
         pack();
-        setMinimumSize(new Dimension(860, 380));
+        setMinimumSize(new Dimension(900, 400));
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
     JPanel buildTopBar() {
-        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         bar.setBackground(BAR_BG);
         bar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COL));
 
         JLabel brand = new JLabel("BEAT SEQ");
         brand.setForeground(new Color(200, 200, 240));
         brand.setFont(new Font("SansSerif", Font.BOLD, 13));
-
         bar.add(brand);
-        bar.add(separator());
-        JButton patternsBtn = actionBtn("Patterns ▾", new Color(42, 42, 58));
-        patternsBtn.addActionListener(e -> showPatternsMenu(patternsBtn));
-        bar.add(patternsBtn);
         bar.add(separator());
 
         JLabel bpmLabel = smallLabel("BPM");
@@ -81,8 +76,8 @@ public class GUI extends JFrame {
             BorderFactory.createLineBorder(BORDER_COL, 1),
             BorderFactory.createEmptyBorder(3, 10, 3, 10)));
 
-        JButton bpmUp = tinyBtn("+");
         JButton bpmDown = tinyBtn("-");
+        JButton bpmUp   = tinyBtn("+");
         bpmUp.addActionListener(e -> changeTempo(5));
         bpmDown.addActionListener(e -> changeTempo(-5));
 
@@ -91,37 +86,33 @@ public class GUI extends JFrame {
         bar.add(bpmDisplay);
         bar.add(bpmUp);
         bar.add(separator());
-        JButton patternsBtn = actionBtn("Patterns ▾", new Color(42, 42, 58));
-        patternsBtn.addActionListener(e -> showPatternsMenu(patternsBtn));
-        bar.add(patternsBtn);
-        bar.add(separator());
 
-        JButton playBtn = actionBtn("▶  Play", new Color(45, 122, 58));
-        JButton stopBtn = actionBtn("■  Stop", new Color(122, 45, 45));
+        JButton playBtn  = actionBtn("Play",  new Color(45, 122, 58));
+        JButton stopBtn  = actionBtn("Stop",  new Color(122, 45, 45));
         JButton clearBtn = actionBtn("Clear", new Color(42, 42, 58));
-        playBtn.addActionListener(e -> { try { playSequence(); setStatus("Playing", new Color(200, 255, 110)); } catch (Exception ex) { setStatus("Error: " + ex.getMessage(), Color.RED); } });
+        playBtn.addActionListener(e -> {
+            try { playSequence(); setStatus("Playing", new Color(200, 255, 110)); }
+            catch (Exception ex) { setStatus("Error: " + ex.getMessage(), Color.RED); }
+        });
         stopBtn.addActionListener(e -> { stopSequence(); setStatus("Stopped", new Color(180, 100, 100)); });
         clearBtn.addActionListener(e -> clearGrid());
-
         bar.add(playBtn);
         bar.add(stopBtn);
         bar.add(clearBtn);
         bar.add(separator());
-        JButton patternsBtn = actionBtn("Patterns ▾", new Color(42, 42, 58));
-        patternsBtn.addActionListener(e -> showPatternsMenu(patternsBtn));
-        bar.add(patternsBtn);
-        bar.add(separator());
 
         JTextField nameField = new JTextField("Groove 01", 10);
         styleInput(nameField);
-        JButton saveBtn = actionBtn("Save", new Color(30, 58, 92));
-        JButton loadBtn = actionBtn("Load", new Color(42, 42, 58));
-        saveBtn.addActionListener(e -> { try { savePattern(nameField.getText()); } catch (Exception ex) { setStatus("Save failed", Color.RED); } });
-        loadBtn.addActionListener(e -> { try { String id = JOptionPane.showInputDialog(this, "Pattern ID:"); if (id != null) loadPattern(Integer.parseInt(id)); } catch (Exception ex) { setStatus("Load failed", Color.RED); } });
-
+        JButton saveBtn     = actionBtn("Save",        new Color(30, 58, 92));
+        JButton patternsBtn = actionBtn("Patterns v",  new Color(42, 42, 58));
+        saveBtn.addActionListener(e -> {
+            try { savePattern(nameField.getText()); }
+            catch (Exception ex) { setStatus("Save failed", Color.RED); }
+        });
+        patternsBtn.addActionListener(e -> showPatternsMenu(patternsBtn));
         bar.add(nameField);
         bar.add(saveBtn);
-        bar.add(loadBtn);
+        bar.add(patternsBtn);
 
         return bar;
     }
@@ -136,7 +127,7 @@ public class GUI extends JFrame {
         indRow.add(spacer(60, 12));
         for (int i = 0; i < STEPS; i++) {
             if (i > 0 && i % 4 == 0) indRow.add(spacer(4, 12));
-            JLabel ind = new JLabel("▼", SwingConstants.CENTER);
+            JLabel ind = new JLabel("v", SwingConstants.CENTER);
             ind.setForeground(new Color(40, 40, 60));
             ind.setFont(new Font("SansSerif", Font.PLAIN, 9));
             ind.setPreferredSize(new Dimension(36, 12));
@@ -182,15 +173,17 @@ public class GUI extends JFrame {
                 track.add(step);
                 if (col < STEPS - 1) track.add(spacer(3, 36));
             }
-            final int rowFinal = row;
-            JSlider vol = new JSlider(JSlider.HORIZONTAL, 0, 127, 100);
-            vol.setPreferredSize(new Dimension(60, 36));
+
+            track.add(spacer(8, 36));
+            final int r = row;
+            JSlider vol = new JSlider(0, 127, 100);
+            vol.setPreferredSize(new Dimension(64, 36));
             vol.setBackground(APP_BG);
-            vol.addChangeListener(e -> volumeLevels[rowFinal] = vol.getValue());
-            track.add(spacer(6, 36));
+            vol.addChangeListener(e -> volumeLevels[r] = vol.getValue());
             track.add(vol);
+
             grid.add(track);
-            if (row < 3) grid.add(spacer(860, 5));
+            if (row < 3) grid.add(spacer(900, 5));
         }
         wrapper.add(grid, BorderLayout.CENTER);
         return wrapper;
@@ -200,37 +193,137 @@ public class GUI extends JFrame {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 8));
         bar.setBackground(BAR_BG);
         bar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COL));
-
-        bar.add(knobGroup("Reverb", new Color(85, 136, 224), 40, v -> reverbLevel = v));
+        bar.add(knobGroup("Reverb",   new Color(85, 136, 224), 40,  v -> reverbLevel   = v));
         bar.add(knobGroup("Velocity", new Color(224, 192, 85), 100, v -> velocityLevel = v));
-        bar.add(knobGroup("Swing", new Color(85, 192, 112), 0, v -> {}));
-
+        bar.add(knobGroup("Swing",    new Color(85, 192, 112), 0,   v -> {}));
         statusLabel = new JLabel("Ready");
         statusLabel.setForeground(new Color(80, 80, 100));
         statusLabel.setFont(new Font("Monospaced", Font.PLAIN, 11));
-
-        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        statusPanel.setBackground(BAR_BG);
-        statusPanel.add(statusLabel);
-
         bar.add(Box.createHorizontalStrut(20));
         bar.add(statusLabel);
         return bar;
+    }
+
+    void showPatternsMenu(JButton anchor) {
+        JPopupMenu menu = new JPopupMenu();
+        menu.setBackground(new Color(26, 26, 36));
+        menu.setBorder(BorderFactory.createLineBorder(BORDER_COL, 1));
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/patterns")).GET().build();
+            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+            String body = res.body();
+            if (body.equals("[]")) {
+                JMenuItem empty = new JMenuItem("No patterns saved");
+                empty.setBackground(new Color(26, 26, 36));
+                empty.setForeground(new Color(100, 100, 120));
+                menu.add(empty);
+            } else {
+                String cleaned = body.replaceAll("^\\[|\\]$", "");
+                String[] items = cleaned.split("\\},\\{");
+                for (String item : items) {
+                    try {
+                        int id = Integer.parseInt(item.replaceAll(".*\"id\":(\\d+).*", "$1").trim());
+                        String name = item.replaceAll(".*\"name\":\"([^\"]+)\".*", "$1").trim();
+                        int t = Integer.parseInt(item.replaceAll(".*\"tempo\":(\\d+).*", "$1").trim());
+                        JMenuItem mi = new JMenuItem(id + "  " + name + "  (" + t + " BPM)");
+                        mi.setBackground(new Color(26, 26, 36));
+                        mi.setForeground(new Color(200, 200, 220));
+                        mi.setFont(new Font("Monospaced", Font.PLAIN, 12));
+                        final int finalId = id;
+                        final int finalT = t;
+                        final String finalName = name;
+                        mi.addActionListener(ev -> {
+                            try {
+                                tempo = finalT;
+                                bpmDisplay.setText(String.valueOf(finalT));
+                                loadBeats(finalId);
+                                setStatus("Loaded: " + finalName, new Color(110, 170, 255));
+                            } catch (Exception ex) { setStatus("Load failed", Color.RED); }
+                        });
+                        menu.add(mi);
+                    } catch (Exception ignored) {}
+                }
+            }
+        } catch (Exception ex) {
+            JMenuItem err = new JMenuItem("Could not connect to server");
+            err.setForeground(Color.RED);
+            menu.add(err);
+        }
+        menu.show(anchor, 0, anchor.getHeight());
+    }
+
+    void savePattern(String name) throws Exception {
+        String json = "{\"name\":\"" + name + "\",\"tempo\":" + tempo + "}";
+        HttpRequest req = HttpRequest.newBuilder()
+            .uri(URI.create(BASE_URL + "/patterns"))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(json)).build();
+        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+        String body = res.body();
+        try {
+            int savedId = Integer.parseInt(body.replaceAll(".*\"id\":(\\d+).*", "$1").trim());
+            saveBeats(savedId);
+            setStatus("Saved pattern " + savedId, new Color(130, 220, 130));
+        } catch (Exception e) {
+            setStatus("Saved!", new Color(130, 220, 130));
+        }
+    }
+
+    void saveBeats(int patternId) throws Exception {
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (int row = 0; row < 4; row++) {
+            for (int step = 0; step < STEPS; step++) {
+                if (!first) sb.append(",");
+                sb.append("{\"instrument_id\":").append(row + 1)
+                  .append(",\"step\":").append(step)
+                  .append(",\"active\":").append(active[row][step]).append("}");
+                first = false;
+            }
+        }
+        sb.append("]");
+        HttpRequest req = HttpRequest.newBuilder()
+            .uri(URI.create(BASE_URL + "/patterns/" + patternId + "/beats"))
+            .header("Content-Type", "application/json")
+            .PUT(HttpRequest.BodyPublishers.ofString(sb.toString())).build();
+        client.send(req, HttpResponse.BodyHandlers.ofString());
+    }
+
+    void loadBeats(int patternId) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder()
+            .uri(URI.create(BASE_URL + "/patterns/" + patternId + "/beats")).GET().build();
+        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+        clearGrid();
+        String body = res.body();
+        if (body.equals("[]")) return;
+        String cleaned = body.replaceAll("^\\[|\\]$", "");
+        String[] entries = cleaned.split("\\},\\{");
+        for (String entry : entries) {
+            try {
+                int instrId = Integer.parseInt(entry.replaceAll(".*\"instrument_id\":(\\d+).*", "$1").trim()) - 1;
+                int step    = Integer.parseInt(entry.replaceAll(".*\"step\":(\\d+).*", "$1").trim());
+                boolean isActive = entry.contains("\"active\":true");
+                if (instrId >= 0 && instrId < 4 && step >= 0 && step < STEPS) {
+                    active[instrId][step] = isActive;
+                    stepPanels[instrId][step].setBackground(isActive ? ROW_COLORS[instrId] : STEP_OFF);
+                    stepPanels[instrId][step].setBorder(BorderFactory.createLineBorder(
+                        isActive ? ROW_COLORS[instrId].brighter() : BORDER_COL, 1));
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     JPanel knobGroup(String name, Color color, int initial, java.util.function.IntConsumer onChange) {
         JPanel group = new JPanel();
         group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
         group.setBackground(BAR_BG);
-
         JLabel lbl = new JLabel(name.toUpperCase());
         lbl.setForeground(new Color(80, 80, 100));
         lbl.setFont(new Font("SansSerif", Font.BOLD, 10));
         lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         KnobPanel knob = new KnobPanel(color, initial, onChange);
         knob.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         group.add(lbl);
         group.add(Box.createVerticalStrut(4));
         group.add(knob);
@@ -282,9 +375,9 @@ public class GUI extends JFrame {
                     ShortMessage reverb = new ShortMessage(ShortMessage.CONTROL_CHANGE, 9, 91, reverbLevel);
                     track.add(new MidiEvent(reverb, 0L));
                     int vel = (int)(velocityLevel * (volumeLevels[row] / 127.0));
-                    ShortMessage on = new ShortMessage(ShortMessage.NOTE_ON, 9, MIDI_NOTES[row], Math.max(1, vel));
+                    ShortMessage on  = new ShortMessage(ShortMessage.NOTE_ON,  9, MIDI_NOTES[row], Math.max(1, vel));
                     ShortMessage off = new ShortMessage(ShortMessage.NOTE_OFF, 9, MIDI_NOTES[row], 0);
-                    track.add(new MidiEvent(on, step * 4L));
+                    track.add(new MidiEvent(on,  step * 4L));
                     track.add(new MidiEvent(off, step * 4L + 2));
                 }
             }
@@ -295,31 +388,6 @@ public class GUI extends JFrame {
         midiSequencer.start();
         metronomeTimer = new javax.swing.Timer(60000 / tempo / 4, e -> advanceStep());
         metronomeTimer.start();
-    }
-
-    void savePattern(String name) throws Exception {
-        stopSequence();
-        String json = "{\"name\":\"" + name + "\",\"tempo\":" + tempo + "}";
-        HttpRequest req = HttpRequest.newBuilder()
-            .uri(URI.create(BASE_URL + "/patterns"))
-            .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(json)).build();
-        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-        String respBody = res.body();
-        int savedId = -1;
-        try {
-            String idStr = respBody.replaceAll(".*"id":(\d+).*", "$1");
-            savedId = Integer.parseInt(idStr);
-        } catch (Exception ignored) {}
-        if (savedId > 0) saveBeats(savedId);
-        setStatus("Saved pattern " + savedId, new Color(130, 220, 130));
-    }
-
-    void loadPattern(int id) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-            .uri(URI.create(BASE_URL + "/patterns/" + id)).GET().build();
-        client.send(req, HttpResponse.BodyHandlers.ofString());
-        setStatus("Loaded pattern " + id, new Color(110, 170, 255));
     }
 
     void setStatus(String msg, Color color) {
@@ -374,138 +442,6 @@ public class GUI extends JFrame {
         return btn;
     }
 
-    void saveBeats(int patternId) throws Exception {
-        StringBuilder sb = new StringBuilder("[");
-        boolean first = true;
-        for (int row = 0; row < 4; row++) {
-            for (int step = 0; step < STEPS; step++) {
-                if (!first) sb.append(",");
-                sb.append("{"instrument_id":").append(row + 1)
-                  .append(","step":").append(step)
-                  .append(","active":").append(active[row][step]).append("}");
-                first = false;
-            }
-        }
-        sb.append("]");
-        HttpRequest req = HttpRequest.newBuilder()
-            .uri(URI.create(BASE_URL + "/patterns/" + patternId + "/beats"))
-            .header("Content-Type", "application/json")
-            .PUT(HttpRequest.BodyPublishers.ofString(sb.toString())).build();
-        client.send(req, HttpResponse.BodyHandlers.ofString());
-    }
-
-    void loadBeats(int patternId) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-            .uri(URI.create(BASE_URL + "/patterns/" + patternId + "/beats")).GET().build();
-        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-        clearGrid();
-        String body = res.body();
-        String[] entries = body.replaceAll("[\[\]{}]", "").split(",(?=\s*"instrument_id")");
-        for (String entry : entries) {
-            try {
-                int instrId = Integer.parseInt(entry.replaceAll(".*"instrument_id":(\d+).*", "$1").trim()) - 1;
-                int step = Integer.parseInt(entry.replaceAll(".*"step":(\d+).*", "$1").trim());
-                boolean isActive = entry.contains(""active":true");
-                if (instrId >= 0 void showPatternsMenu(JButton anchor) {
-        JPopupMenu menu = new JPopupMenu();
-        menu.setBackground(new Color(26, 26, 36));
-        menu.setBorder(BorderFactory.createLineBorder(BORDER_COL, 1));
-        try {
-            HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/patterns")).GET().build();
-            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-            String body = res.body();
-            if (body.equals("[]")) {
-                JMenuItem empty = new JMenuItem("No patterns saved");
-                empty.setBackground(new Color(26, 26, 36));
-                empty.setForeground(new Color(100, 100, 120));
-                menu.add(empty);
-            } else {
-                String[] items = body.split("\},\{");
-                for (String item : items) {
-                    try {
-                        int id = Integer.parseInt(item.replaceAll(".*"id":(\d+).*", "$1").trim());
-                        String name = item.replaceAll(".*"name":"([^"]+)".*", "$1").trim();
-                        int t = Integer.parseInt(item.replaceAll(".*"tempo":(\d+).*", "$1").trim());
-                        JMenuItem mi = new JMenuItem(id + "  " + name + "  (" + t + " BPM)");
-                        mi.setBackground(new Color(26, 26, 36));
-                        mi.setForeground(new Color(200, 200, 220));
-                        mi.setFont(new Font("Monospaced", Font.PLAIN, 12));
-                        mi.addActionListener(ev -> {
-                            try {
-                                tempo = t;
-                                bpmDisplay.setText(String.valueOf(t));
-                                loadBeats(id);
-                                setStatus("Loaded: " + name, new Color(110, 170, 255));
-                            } catch (Exception ex) { setStatus("Load failed", Color.RED); }
-                        });
-                        menu.add(mi);
-                    } catch (Exception ignored) {}
-                }
-            }
-        } catch (Exception ex) {
-            JMenuItem err = new JMenuItem("Could not connect to server");
-            err.setForeground(Color.RED);
-            menu.add(err);
-        }
-        menu.show(anchor, 0, anchor.getHeight());
-    }
-
-    void styleInput(JTextField f) {void styleInput(JTextField f) { instrId < 4 void styleInput(JTextField f) {void styleInput(JTextField f) { step >= 0 void styleInput(JTextField f) {void styleInput(JTextField f) { step < STEPS) {
-                    active[instrId][step] = isActive;
-                    stepPanels[instrId][step].setBackground(isActive ? ROW_COLORS[instrId] : STEP_OFF);
-                    stepPanels[instrId][step].setBorder(BorderFactory.createLineBorder(
-                        isActive ? ROW_COLORS[instrId].brighter() : BORDER_COL, 1));
-                }
-            } catch (Exception ignored) {}
-        }
-    }
-
-    void showPatternsMenu(JButton anchor) {
-        JPopupMenu menu = new JPopupMenu();
-        menu.setBackground(new Color(26, 26, 36));
-        menu.setBorder(BorderFactory.createLineBorder(BORDER_COL, 1));
-        try {
-            HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/patterns")).GET().build();
-            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-            String body = res.body();
-            if (body.equals("[]")) {
-                JMenuItem empty = new JMenuItem("No patterns saved");
-                empty.setBackground(new Color(26, 26, 36));
-                empty.setForeground(new Color(100, 100, 120));
-                menu.add(empty);
-            } else {
-                String[] items = body.split("\},\{");
-                for (String item : items) {
-                    try {
-                        int id = Integer.parseInt(item.replaceAll(".*"id":(\d+).*", "$1").trim());
-                        String name = item.replaceAll(".*"name":"([^"]+)".*", "$1").trim();
-                        int t = Integer.parseInt(item.replaceAll(".*"tempo":(\d+).*", "$1").trim());
-                        JMenuItem mi = new JMenuItem(id + "  " + name + "  (" + t + " BPM)");
-                        mi.setBackground(new Color(26, 26, 36));
-                        mi.setForeground(new Color(200, 200, 220));
-                        mi.setFont(new Font("Monospaced", Font.PLAIN, 12));
-                        mi.addActionListener(ev -> {
-                            try {
-                                tempo = t;
-                                bpmDisplay.setText(String.valueOf(t));
-                                loadBeats(id);
-                                setStatus("Loaded: " + name, new Color(110, 170, 255));
-                            } catch (Exception ex) { setStatus("Load failed", Color.RED); }
-                        });
-                        menu.add(mi);
-                    } catch (Exception ignored) {}
-                }
-            }
-        } catch (Exception ex) {
-            JMenuItem err = new JMenuItem("Could not connect to server");
-            err.setForeground(Color.RED);
-            menu.add(err);
-        }
-        menu.show(anchor, 0, anchor.getHeight());
-    }
-
     void styleInput(JTextField f) {
         f.setBackground(APP_BG);
         f.setForeground(new Color(200, 200, 220));
@@ -551,11 +487,11 @@ public class GUI extends JFrame {
             g2.setStroke(new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g2.drawArc(cx - r + 2, cy - r + 2, (r - 2) * 2, (r - 2) * 2, 220, -260);
             g2.setColor(color);
-            int sweep = (int) (value / 127.0 * 260);
+            int sweep = (int)(value / 127.0 * 260);
             g2.drawArc(cx - r + 2, cy - r + 2, (r - 2) * 2, (r - 2) * 2, 220, -sweep);
             double angle = Math.toRadians(220 - sweep);
-            int dx = (int) (Math.cos(angle) * (r - 5));
-            int dy = (int) (-Math.sin(angle) * (r - 5));
+            int dx = (int)(Math.cos(angle) * (r - 5));
+            int dy = (int)(-Math.sin(angle) * (r - 5));
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(2));
             g2.drawLine(cx, cy, cx + dx, cy + dy);
