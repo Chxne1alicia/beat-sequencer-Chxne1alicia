@@ -34,7 +34,7 @@ public class GUI extends JFrame {
     private java.util.List<Integer> volumeList = new java.util.ArrayList<>();
     private java.util.List<Integer> panList = new java.util.ArrayList<>();
     private JPanel gridPanel;
-    };
+ 
     private final Color APP_BG     = new Color(15, 15, 20);
     private final Color BAR_BG     = new Color(26, 26, 36);
     private final Color STEP_OFF   = new Color(26, 26, 36);
@@ -329,12 +329,12 @@ public class GUI extends JFrame {
     void saveBeats(int patternId) throws Exception {
         StringBuilder sb = new StringBuilder("[");
         boolean first = true;
-        for (int row = 0; row < 4; row++) {
+        for (int row = 0; row < activeRows.size(); row++) {
             for (int step = 0; step < STEPS; step++) {
                 if (!first) sb.append(",");
                 sb.append("{\"instrument_id\":").append(row + 1)
                   .append(",\"step\":").append(step)
-                  .append(",\"active\":").append(active[row][step]).append("}");
+                  .append(",\"active\":").append(activeRows.get(row)[step]).append("}");
                 first = false;
             }
         }
@@ -360,11 +360,11 @@ public class GUI extends JFrame {
                 int instrId = Integer.parseInt(entry.replaceAll(".*\"instrument_id\":(\\d+).*", "$1").trim()) - 1;
                 int step    = Integer.parseInt(entry.replaceAll(".*\"step\":(\\d+).*", "$1").trim());
                 boolean isActive = entry.contains("\"active\":true");
-                if (instrId >= 0 && instrId < 4 && step >= 0 && step < STEPS) {
-                    active[instrId][step] = isActive;
-                    stepPanels[instrId][step].setBackground(isActive ? ROW_COLORS[instrId] : STEP_OFF);
-                    stepPanels[instrId][step].setBorder(BorderFactory.createLineBorder(
-                        isActive ? ROW_COLORS[instrId].brighter() : BORDER_COL, 1));
+                if (instrId >= 0 && instrId < activeRows.size() && step >= 0 && step < STEPS) {
+                    activeRows.get(instrId)[step] = isActive;
+                    stepPanelRows.get(instrId)[step].setBackground(isActive ? ROW_COLORS[instrId % ROW_COLORS.length] : STEP_OFF);
+                    stepPanelRows.get(instrId)[step].setBorder(BorderFactory.createLineBorder(
+                        isActive ? ROW_COLORS[instrId % ROW_COLORS.length].brighter() : BORDER_COL, 1));
                 }
             } catch (Exception ignored) {}
         }
