@@ -14,6 +14,7 @@ public class GUI extends JFrame {
 
     private final String[] INSTRUMENTS = {"KICK", "SNARE", "HI-HAT", "TOM"};
     private final int[] MIDI_NOTES = {36, 38, 42, 45};
+    private final int[] MIDI_CHANNELS = {0, 1, 2, 3};
     private final Color[] ROW_COLORS = {
         new Color(224, 85, 85),
         new Color(85, 136, 224),
@@ -389,13 +390,16 @@ public class GUI extends JFrame {
         for (int step = 0; step < STEPS; step++) {
             for (int row = 0; row < 4; row++) {
                 if (active[row][step]) {
-                    ShortMessage reverb = new ShortMessage(ShortMessage.CONTROL_CHANGE, 9, 91, reverbLevel);
+                    int ch = MIDI_CHANNELS[row];
+                    ShortMessage reverb = new ShortMessage(ShortMessage.CONTROL_CHANGE, ch, 91, reverbLevel);
                     track.add(new MidiEvent(reverb, 0L));
-		    ShortMessage panMsg = new ShortMessage(ShortMessage.CONTROL_CHANGE, 9, 10, panLevels[row]);
+                    ShortMessage panMsg = new ShortMessage(ShortMessage.CONTROL_CHANGE, ch, 10, panLevels[row]);
                     track.add(new MidiEvent(panMsg, 0L));
+                    ShortMessage prog = new ShortMessage(ShortMessage.PROGRAM_CHANGE, ch, 0, 0);
+                    track.add(new MidiEvent(prog, 0L));
                     int vel = (int)(velocityLevel * (volumeLevels[row] / 127.0));
-                    ShortMessage on  = new ShortMessage(ShortMessage.NOTE_ON,  9, MIDI_NOTES[row], Math.max(1, vel));
-                    ShortMessage off = new ShortMessage(ShortMessage.NOTE_OFF, 9, MIDI_NOTES[row], 0);
+                    ShortMessage on  = new ShortMessage(ShortMessage.NOTE_ON,  ch, MIDI_NOTES[row], Math.max(1, vel));
+                    ShortMessage off = new ShortMessage(ShortMessage.NOTE_OFF, ch, MIDI_NOTES[row], 0);
                     track.add(new MidiEvent(on,  step * 4L));
                     track.add(new MidiEvent(off, step * 4L + 2));
                 }
